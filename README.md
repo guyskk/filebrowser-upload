@@ -9,6 +9,11 @@ Download binary executable from https://github.com/guyskk/filebrowser-upload/rel
 ## Usage
 
 ```
+usage: filebrowser-upload [-h] [--version VERSION] --api API --username
+                          USERNAME --password PASSWORD --dest DEST
+                          [--insecure] [--no-progress] [--override]
+                          filepath
+
 Filebrowser upload.
 
 positional arguments:
@@ -21,6 +26,8 @@ optional arguments:
   --username USERNAME  Username
   --password PASSWORD  Password
   --dest DEST          File destination
+  --insecure           Allow insecure server connections when using SSL
+  --no-progress        Disable progress bar
   --override           Override file or not
 ```
 
