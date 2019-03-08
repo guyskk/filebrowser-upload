@@ -99,11 +99,15 @@ def upload(CONFIG):
     fileobj = open(CONFIG.filepath, 'rb')
     if not CONFIG.no_progress:
         fileobj = ProgressFile(fileobj)
+    headers = {
+        'X-Auth': token,  # version >= 2.0.3 seems use this header
+        'Authorization': 'Bearer {}'.format(token),  # version <= 2.0.0 seems use this header
+    }
     with fileobj:
         response = requests.post(
             url, data=fileobj,
             params={"override": override},
-            headers={'X-Auth': token},
+            headers=headers,
             verify=not CONFIG.insecure,
         )
     print('{} {}'.format(response.status_code, response.reason))
