@@ -37,6 +37,7 @@ optional arguments:
   --no-progress        Disable progress bar
   --override           Override files or not
   --dry-run            Dry run mode (no upload)
+  --no-input-folder    Remove input folder from full path when uploading. Only content of input folder will be uploaded.
 ```
 
 > :warning: **Specify password via params only in safe environment**

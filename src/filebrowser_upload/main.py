@@ -4,6 +4,7 @@ import posixpath
 import argparse
 import sys
 import warnings
+import pathlib
 from os import walk
 from os.path import abspath, dirname, expanduser, join
 from getpass import getpass
@@ -70,6 +71,14 @@ def get_args():
         action="store_true",
         default=False,
         help="Dry run mode (no upload)",
+    )
+    parser.add_argument(
+        "--no-input-folder",
+        dest="no_input_folder",
+        action="store_true",
+        default=False,
+        help="""Remove input folder from full path when uploading.
+        Only content of input folder will be uploaded.""",
     )
 
     subparsers = parser.add_subparsers(
@@ -233,7 +242,14 @@ def main():
         # Traverse the folder in top-down way and upload all files
         for path, _, files in walk(args.src):
             for file in files:
-                file = join(path, file)
+                if args.no_input_folder:
+                    path = pathlib.Path(path)
+                    path = str(pathlib.Path(*path.parts[1:]))
+
+                # File only will result in a cwd path if no_input_folder is True
+                if path != ".":
+                    file = join(path, file)
+
                 file_full_url = posixpath.join(url, file)
 
                 print(f"Uploading to {file_full_url}")
