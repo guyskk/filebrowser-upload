@@ -26,6 +26,12 @@ except ImportError:
 
 
 def get_args():
+    """
+    Get arguments.
+
+    Returns:
+        args: Parsed arguments.
+    """
     if "--version" in sys.argv:
         print(__version__)
         sys.exit(0)
@@ -70,17 +76,17 @@ def get_args():
         help="Commands for single file upload or entire folder", dest="subcommand"
     )
 
-    # create the parser for the "command_1" command
-    parser_a = subparsers.add_parser("file", help="Single file upload")
-    parser_a.add_argument("src", type=str, help="Source file")
-    parser_a.add_argument("dest", type=str, help="Destination file")
+    # Parser for file command
+    file_parser = subparsers.add_parser("file", help="Single file upload")
+    file_parser.add_argument("src", type=str, help="Source file")
+    file_parser.add_argument("dest", type=str, help="Destination file")
 
-    # create the parser for the "command_2" command
-    parser_b = subparsers.add_parser(
+    # Parser for folder command
+    folder_parser = subparsers.add_parser(
         "folder", help="Entire folder and subfolders upload"
     )
-    parser_b.add_argument("src", type=str, help="Source folder")
-    parser_b.add_argument("dest", type=str, help="Destination folder")
+    folder_parser.add_argument("src", type=str, help="Source folder")
+    folder_parser.add_argument("dest", type=str, help="Destination folder")
 
     args = parser.parse_args()
     args.api = args.api.strip().rstrip("/")
@@ -90,29 +96,60 @@ def get_args():
     return args
 
 
-def get_login_url(CONFIG):
-    return posixpath.join(CONFIG.api, "login")
+def get_login_url(config):
+    """
+    Compose the login url.
+
+    Args:
+        config (args): Parsed arguments.
+
+    Returns:
+        str: Login url.
+    """
+    return posixpath.join(config.api, "login")
 
 
-def get_upload_url(CONFIG):
-    return posixpath.join(CONFIG.api, "resources", CONFIG.dest)
+def get_upload_url(config):
+    """
+    Compose the upload url.
+
+    Args:
+        config (args): Parsed arguments.
+
+    Returns:
+        str: Upload url.
+    """
+    return posixpath.join(config.api, "resources", config.dest)
 
 
-def get_token(CONFIG):
+def get_token(config):
+    """
+    Get authentication token.
+
+    Args:
+        config (args): Parsed arguments.
+
+    Returns:
+        str: Authentication token.
+    """
     response = requests.post(
-        get_login_url(CONFIG),
+        get_login_url(config),
         json={
-            "password": CONFIG.password,
+            "password": config.password,
             "recaptcha": "",
-            "username": CONFIG.username,
+            "username": config.username,
         },
-        verify=not CONFIG.insecure,
+        verify=not config.insecure,
     )
     response.raise_for_status()
     return response.text
 
 
 class ProgressFile:
+    """
+    Progress file class for tqdm.
+    """
+
     def __init__(self, fileobj):
         self.fileobj = fileobj
         self._length = super_len(self.fileobj)
@@ -140,6 +177,17 @@ class ProgressFile:
 
 
 def upload(file, url, no_progress, override, headers, insecure):
+    """
+    Upload file to the specified url.
+
+    Args:
+        file (str): File to be read.
+        url (str): File destination url.
+        no_progress (bool): Enable or disable progress bar.
+        override (bool): Override file or not.
+        headers (dict): Authentication headers.
+        insecure (bool): Allow insecure server connections when using SSL.
+    """
     fileobj = open(file, "rb")
 
     if not no_progress:
@@ -158,6 +206,9 @@ def upload(file, url, no_progress, override, headers, insecure):
 
 
 def main():
+    """
+    Main function. Get arguments, login, upload files.
+    """
     args = get_args()
 
     if args.password is None:
@@ -179,6 +230,7 @@ def main():
     url = get_upload_url(args)
 
     if args.subcommand == "folder":
+        # Traverse the folder in top-down way and upload all files
         for path, _, files in walk(args.src):
             for file in files:
                 file = join(path, file)
