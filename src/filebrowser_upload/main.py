@@ -4,7 +4,6 @@ import posixpath
 import argparse
 import sys
 import warnings
-import pathlib
 from os import walk
 from os.path import abspath, dirname, expanduser, join
 from getpass import getpass
@@ -243,13 +242,9 @@ def main():
         for path, _, files in walk(args.src):
             for file in files:
                 if args.no_input_folder:
-                    path = pathlib.Path(path)
-                    path = str(pathlib.Path(*path.parts[1:]))
+                    path = path.removeprefix(args.src)
 
-                # File only will result in a cwd path if no_input_folder is True
-                if path != ".":
-                    file = join(path, file)
-
+                file = join(path, file).lstrip("/")
                 file_full_url = posixpath.join(url, file)
 
                 print(f"Uploading to {file_full_url}")
