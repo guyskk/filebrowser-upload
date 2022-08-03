@@ -71,14 +71,6 @@ def get_args():
         default=False,
         help="Dry run mode (no upload)",
     )
-    parser.add_argument(
-        "--no-input-folder",
-        dest="no_input_folder",
-        action="store_true",
-        default=False,
-        help="""Remove input folder from full path when uploading.
-        Only content of input folder will be uploaded.""",
-    )
 
     subparsers = parser.add_subparsers(
         help="Commands for single file upload or entire folder", dest="subcommand"
@@ -95,6 +87,14 @@ def get_args():
     )
     folder_parser.add_argument("src", type=str, help="Source folder")
     folder_parser.add_argument("dest", type=str, help="Destination folder")
+    folder_parser.add_argument(
+        "--no-input-folder",
+        dest="no_input_folder",
+        action="store_true",
+        default=False,
+        help="""Remove input folder from full path when uploading.
+        Only content of input folder will be uploaded.""",
+    )
 
     args = parser.parse_args()
     args.api = args.api.strip().rstrip("/")
@@ -184,7 +184,7 @@ class ProgressFile:
         self.close()
 
 
-def upload(file, url, no_progress, override, headers, insecure):
+def upload(file, url, no_progress, override, headers, insecure, report):
     """
     Upload file to the specified url.
 
@@ -195,7 +195,9 @@ def upload(file, url, no_progress, override, headers, insecure):
         override (bool): Override file or not.
         headers (dict): Authentication headers.
         insecure (bool): Allow insecure server connections when using SSL.
+        report (dict): Update upload report.
     """
+
     fileobj = open(file, "rb")
 
     if not no_progress:
@@ -210,7 +212,13 @@ def upload(file, url, no_progress, override, headers, insecure):
             verify=not insecure,
         )
 
-    print(f"{response.status_code} {response.reason}")
+    report_key = f"{response.status_code} {response.reason}"
+    print(f"{report_key}\n")
+
+    if report.get(report_key):
+        report[report_key] += 1
+    else:
+        report[report_key] = 1
 
 
 def main():
@@ -236,18 +244,23 @@ def main():
     }
 
     url = get_upload_url(args)
+    report = {}
 
     if args.subcommand == "folder":
         # Traverse the folder in top-down way and upload all files
         for path, _, files in walk(args.src):
             for file in files:
                 if args.no_input_folder:
-                    path = path.removeprefix(args.src)
+                    path_no_prefix = path.removeprefix(args.src)
+                else:
+                    path_no_prefix = path
 
-                file = join(path, file).lstrip("/")
-                file_full_url = posixpath.join(url, file)
+                file_full_url = posixpath.join(
+                    url, path_no_prefix.lstrip("/"), file.lstrip("/")
+                )
+                file = join(path, file)
 
-                print(f"Uploading to {file_full_url}")
+                print(f"Uploading {file} to {file_full_url}")
 
                 if not args.dry_run:
                     upload(
@@ -257,8 +270,22 @@ def main():
                         override,
                         headers,
                         args.insecure,
+                        report,
                     )
     elif args.subcommand == "file":
         print(f"Uploading to {url}")
         if not args.dry_run:
-            upload(args.src, url, args.no_progress, override, headers, args.insecure)
+            upload(
+                args.src,
+                url,
+                args.no_progress,
+                override,
+                headers,
+                args.insecure,
+                report,
+            )
+
+    print("\nUpload completed with the following report:")
+
+    for key, value in report.items():
+        print(f"\t{value} item were uploaded with code {key}")

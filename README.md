@@ -37,7 +37,33 @@ optional arguments:
   --no-progress        Disable progress bar
   --override           Override files or not
   --dry-run            Dry run mode (no upload)
-  --no-input-folder    Remove input folder from full path when uploading. Only content of input folder will be uploaded.
+```
+
+### Single file help
+
+```console
+usage: filebrowser-upload file [-h] src dest
+
+positional arguments:
+  src         Source file
+  dest        Destination file
+
+optional arguments:
+  -h, --help  show this help message and exit
+```
+
+### Folder help
+
+```console
+usage: filebrowser-upload folder [-h] [--no-input-folder] src dest
+
+positional arguments:
+  src                Source folder
+  dest               Destination folder
+
+optional arguments:
+  -h, --help         show this help message and exit
+  --no-input-folder  Remove input folder from full path when uploading. Only content of input folder will be uploaded.
 ```
 
 > :warning: **Specify password via params only in safe environment**
@@ -61,6 +87,23 @@ filebrowser-upload \
     --username admin \
     folder foo bar
 ```
+
+Will upload to:
+
+```http://127.0.0.1:8000/api/resources/bar/foo/some_file.txt```
+
+With ```--no-input-folder```
+
+```console
+filebrowser-upload 
+    --api http://127.0.0.1:8000/api/ \
+    --username admin \ 
+    folder --no-input-folder foo/bar test
+```
+
+Will upload to:
+
+```http://127.0.0.1:8000/api/resources/test/some_file.txt```
 
 ### Dry run
 
