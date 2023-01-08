@@ -55,7 +55,7 @@ optional arguments:
 ### Folder help
 
 ```console
-usage: filebrowser-upload folder [-h] [--no-input-folder] src dest
+usage: filebrowser-upload folder [-h] [--only-folder-content] src dest
 
 positional arguments:
   src                Source folder
@@ -63,7 +63,7 @@ positional arguments:
 
 optional arguments:
   -h, --help         show this help message and exit
-  --no-input-folder  Remove input folder from full path when uploading. Only content of input folder will be uploaded.
+  --only-folder-content  Remove input folder from full path when uploading. Only content of input folder will be uploaded.
 ```
 
 > :warning: **Specify password via params only in safe environment**
@@ -92,13 +92,13 @@ Will upload to:
 
 ```http://127.0.0.1:8000/api/resources/bar/foo/some_file.txt```
 
-With ```--no-input-folder```
+With ```--only-folder-content```
 
 ```console
 filebrowser-upload 
     --api http://127.0.0.1:8000/api/ \
     --username admin \ 
-    folder --no-input-folder foo/bar test
+    folder --only-folder-content foo/bar test
 ```
 
 Will upload to:

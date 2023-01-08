@@ -14,10 +14,10 @@ from urllib3.exceptions import InsecureRequestWarning
 
 from .__version__ import __version__
 
-VENDOR_PATH = abspath(join(dirname(__file__), "vendor"))
+VENDOR_PATH = abspath(join(dirname(__file__), 'vendor'))
 sys.path.insert(0, VENDOR_PATH)
 
-warnings.simplefilter("ignore", InsecureRequestWarning)
+warnings.simplefilter('ignore', InsecureRequestWarning)
 
 try:
     from requests.utils import super_len
@@ -26,86 +26,86 @@ except ImportError:
 
 
 def get_args():
-    """
+    '''
     Get arguments.
 
     Returns:
         args: Parsed arguments.
-    """
-    if "--version" in sys.argv:
+    '''
+    if '--version' in sys.argv:
         print(__version__)
         sys.exit(0)
 
-    parser = argparse.ArgumentParser(description="Filebrowser upload.")
-    parser.add_argument("--version", dest="version", help="Show version")
+    parser = argparse.ArgumentParser(description='Filebrowser upload.')
+    parser.add_argument('--version', dest='version', help='Show version')
     parser.add_argument(
-        "--api", dest="api", required=True, help="Filebrowser upload API URL"
+        '--api', dest='api', required=True, help='Filebrowser upload API URL'
     )
-    parser.add_argument("--username", dest="username", required=True, help="Username")
-    parser.add_argument("--password", dest="password", help="Inline password")
+    parser.add_argument('--username', dest='username', required=True, help='Username')
+    parser.add_argument('--password', dest='password', help='Inline password')
     parser.add_argument(
-        "--insecure",
-        dest="insecure",
-        action="store_true",
+        '--insecure',
+        dest='insecure',
+        action='store_true',
         default=False,
-        help="Allow insecure server connections when using SSL",
-    )
-    parser.add_argument(
-        "--no-progress",
-        dest="no_progress",
-        action="store_true",
-        default=False,
-        help="Disable progress bar",
+        help='Allow insecure server connections when using SSL',
     )
     parser.add_argument(
-        "--override",
-        dest="override",
-        action="store_true",
+        '--no-progress',
+        dest='no_progress',
+        action='store_true',
         default=False,
-        help="Override files or not",
+        help='Disable progress bar',
     )
     parser.add_argument(
-        "--dry-run",
-        dest="dry_run",
-        action="store_true",
+        '--override',
+        dest='override',
+        action='store_true',
         default=False,
-        help="Dry run mode (no upload)",
+        help='Override files or not',
+    )
+    parser.add_argument(
+        '--dry-run',
+        dest='dry_run',
+        action='store_true',
+        default=False,
+        help='Dry run mode (no upload)',
     )
 
     subparsers = parser.add_subparsers(
-        help="Commands for single file upload or entire folder", dest="subcommand"
+        help='Commands for single file upload or entire folder', dest='subcommand'
     )
 
     # Parser for file command
-    file_parser = subparsers.add_parser("file", help="Single file upload")
-    file_parser.add_argument("src", type=str, help="Source file")
-    file_parser.add_argument("dest", type=str, help="Destination file")
+    file_parser = subparsers.add_parser('file', help='Single file upload')
+    file_parser.add_argument('src', type=str, help='Source file')
+    file_parser.add_argument('dest', type=str, help='Destination file')
 
     # Parser for folder command
     folder_parser = subparsers.add_parser(
-        "folder", help="Entire folder and subfolders upload"
+        'folder', help='Entire folder and subfolders upload'
     )
-    folder_parser.add_argument("src", type=str, help="Source folder")
-    folder_parser.add_argument("dest", type=str, help="Destination folder")
+    folder_parser.add_argument('src', type=str, help='Source folder')
+    folder_parser.add_argument('dest', type=str, help='Destination folder')
     folder_parser.add_argument(
-        "--no-input-folder",
-        dest="no_input_folder",
-        action="store_true",
+        '--only-folder-content',
+        dest='only_folder_content',
+        action='store_true',
         default=False,
-        help="""Remove input folder from full path when uploading.
-        Only content of input folder will be uploaded.""",
+        help='''Remove input folder from full path when uploading.
+        Only content of input folder will be uploaded.''',
     )
 
     args = parser.parse_args()
-    args.api = args.api.strip().rstrip("/")
+    args.api = args.api.strip().rstrip('/')
     args.src = expanduser(args.src)
-    args.dest = args.dest.strip().lstrip("/")
+    args.dest = args.dest.strip().lstrip('/')
 
     return args
 
 
 def get_login_url(config):
-    """
+    '''
     Compose the login url.
 
     Args:
@@ -113,12 +113,12 @@ def get_login_url(config):
 
     Returns:
         str: Login url.
-    """
-    return posixpath.join(config.api, "login")
+    '''
+    return posixpath.join(config.api, 'login')
 
 
 def get_upload_url(config):
-    """
+    '''
     Compose the upload url.
 
     Args:
@@ -126,12 +126,12 @@ def get_upload_url(config):
 
     Returns:
         str: Upload url.
-    """
-    return posixpath.join(config.api, "resources", config.dest)
+    '''
+    return posixpath.join(config.api, 'resources', config.dest)
 
 
 def get_token(config):
-    """
+    '''
     Get authentication token.
 
     Args:
@@ -139,13 +139,13 @@ def get_token(config):
 
     Returns:
         str: Authentication token.
-    """
+    '''
     response = requests.post(
         get_login_url(config),
         json={
-            "password": config.password,
-            "recaptcha": "",
-            "username": config.username,
+            'password': config.password,
+            'recaptcha': '',
+            'username': config.username,
         },
         verify=not config.insecure,
     )
@@ -154,15 +154,15 @@ def get_token(config):
 
 
 class ProgressFile:
-    """
+    '''
     Progress file class for tqdm.
-    """
+    '''
 
     def __init__(self, fileobj):
         self.fileobj = fileobj
         self._length = super_len(self.fileobj)
         self.pbar = tqdm(
-            total=self._length, ncols=80, ascii=True, unit="B", unit_scale=True
+            total=self._length, ncols=80, ascii=True, unit='B', unit_scale=True
         )
 
     def __len__(self):
@@ -185,7 +185,7 @@ class ProgressFile:
 
 
 def upload(file, url, no_progress, override, headers, insecure, report):
-    """
+    '''
     Upload file to the specified url.
 
     Args:
@@ -196,9 +196,9 @@ def upload(file, url, no_progress, override, headers, insecure, report):
         headers (dict): Authentication headers.
         insecure (bool): Allow insecure server connections when using SSL.
         report (dict): Update upload report.
-    """
+    '''
 
-    fileobj = open(file, "rb")
+    fileobj = open(file, 'rb')
 
     if not no_progress:
         fileobj = ProgressFile(fileobj)
@@ -207,13 +207,13 @@ def upload(file, url, no_progress, override, headers, insecure, report):
         response = requests.post(
             url,
             data=fileobj,
-            params={"override": override},
+            params={'override': override},
             headers=headers,
             verify=not insecure,
         )
 
-    report_key = f"{response.status_code} {response.reason}"
-    print(f"{report_key}\n")
+    report_key = f'{response.status_code} {response.reason}'
+    print(f'{report_key}\n')
 
     if report.get(report_key):
         report[report_key] += 1
@@ -222,45 +222,45 @@ def upload(file, url, no_progress, override, headers, insecure, report):
 
 
 def main():
-    """
+    '''
     Main function. Get arguments, login, upload files.
-    """
+    '''
     args = get_args()
 
     if args.password is None:
-        args.password = getpass("Password: ")
+        args.password = getpass('Password: ')
 
     try:
         token = get_token(args)
     except requests.exceptions.HTTPError as ex:
-        print(f"Login failed: {ex.response.status_code} {ex.response.reason}")
+        print(f'Login failed: {ex.response.status_code} {ex.response.reason}')
         return
 
-    override = "true" if args.override else "false"
+    override = 'true' if args.override else 'false'
 
     headers = {
-        "X-Auth": token,  # version >= 2.0.3 seems use this header
-        "Authorization": f"Bearer {token}",  # version <= 2.0.0 seems use this header
+        'X-Auth': token,  # version >= 2.0.3 seems use this header
+        'Authorization': f'Bearer {token}',  # version <= 2.0.0 seems use this header
     }
 
     url = get_upload_url(args)
     report = {}
 
-    if args.subcommand == "folder":
+    if args.subcommand == 'folder':
         # Traverse the folder in top-down way and upload all files
         for path, _, files in walk(args.src):
             for file in files:
-                if args.no_input_folder:
+                if args.only_folder_content:
                     path_no_prefix = path.removeprefix(args.src)
                 else:
                     path_no_prefix = path
 
                 file_full_url = posixpath.join(
-                    url, path_no_prefix.lstrip("/"), file.lstrip("/")
+                    url, path_no_prefix.lstrip('/'), file.lstrip('/')
                 )
                 file = join(path, file)
 
-                print(f"Uploading {file} to {file_full_url}")
+                print(f'Uploading {file} to {file_full_url}')
 
                 if not args.dry_run:
                     upload(
@@ -272,8 +272,8 @@ def main():
                         args.insecure,
                         report,
                     )
-    elif args.subcommand == "file":
-        print(f"Uploading to {url}")
+    elif args.subcommand == 'file':
+        print(f'Uploading to {url}')
         if not args.dry_run:
             upload(
                 args.src,
@@ -285,7 +285,7 @@ def main():
                 report,
             )
 
-    print("\nUpload completed with the following report:")
+    print('\nUpload completed with the following report:')
 
     for key, value in report.items():
-        print(f"\t{value} item were uploaded with code {key}")
+        print(f'\t{value} item were uploaded with code {key}')
