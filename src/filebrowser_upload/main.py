@@ -5,7 +5,7 @@ import argparse
 import sys
 import warnings
 from os import walk
-from os.path import abspath, dirname, expanduser, join
+from os.path import abspath, dirname, expanduser, join, isdir, isfile, basename
 from getpass import getpass
 
 import requests
@@ -37,11 +37,19 @@ def get_args():
         sys.exit(0)
 
     parser = argparse.ArgumentParser(description='Filebrowser upload.')
-    parser.add_argument('--version', dest='version', help='Show version')
+
+    parser.add_argument('src', type=str, help='Source file or folder')
     parser.add_argument(
         '--api', dest='api', required=True, help='Filebrowser upload API URL'
     )
     parser.add_argument('--username', dest='username', required=True, help='Username')
+    parser.add_argument(
+        '--dest',
+        dest='dest',
+        type=str,
+        default="",
+        help='Destination file or folder (Default is filebrowser home)',
+    )
     parser.add_argument('--password', dest='password', help='Inline password')
     parser.add_argument(
         '--insecure',
@@ -72,22 +80,7 @@ def get_args():
         help='Dry run mode (no upload)',
     )
 
-    subparsers = parser.add_subparsers(
-        help='Commands for single file upload or entire folder', dest='subcommand'
-    )
-
-    # Parser for file command
-    file_parser = subparsers.add_parser('file', help='Single file upload')
-    file_parser.add_argument('src', type=str, help='Source file')
-    file_parser.add_argument('dest', type=str, help='Destination file')
-
-    # Parser for folder command
-    folder_parser = subparsers.add_parser(
-        'folder', help='Entire folder and subfolders upload'
-    )
-    folder_parser.add_argument('src', type=str, help='Source folder')
-    folder_parser.add_argument('dest', type=str, help='Destination folder')
-    folder_parser.add_argument(
+    parser.add_argument(
         '--only-folder-content',
         dest='only_folder_content',
         action='store_true',
@@ -95,11 +88,13 @@ def get_args():
         help='''Remove input folder from full path when uploading.
         Only content of input folder will be uploaded.''',
     )
+    parser.add_argument('--version', dest='version', help='Show version')
 
     args = parser.parse_args()
-    args.api = args.api.strip().rstrip('/')
+
     args.src = expanduser(args.src)
     args.dest = args.dest.strip().lstrip('/')
+    args.api = args.api.strip().rstrip('/')
 
     return args
 
@@ -221,10 +216,57 @@ def upload(file, url, no_progress, override, headers, insecure, report):
         report[report_key] = 1
 
 
+def traverse_fs_and_upload(config, url, override, headers, report):
+    """
+    Traverse the folder in top-down way starting from a given path and upload all files
+
+    Args:
+        config: Parsed arguments
+        url (str): Upload url
+        override (bool): Override files or not
+        headers (dict): Authentication headers
+        report (dict): Update upload report
+    """
+
+    for path, _, files in walk(config.src):
+        for file in files:
+            if config.only_folder_content:
+                path_no_prefix = path.removeprefix(config.src)
+            else:
+                path_no_prefix = path
+
+            file_full_url = posixpath.join(
+                url, path_no_prefix.lstrip('/'), file.lstrip('/')
+            )
+            print(
+                file_full_url,
+                url,
+                path_no_prefix,
+                path_no_prefix.lstrip('/'),
+                file,
+                file.lstrip('/'),
+            )
+            file = join(path, file)
+
+            print(f'Uploading {file} to {file_full_url}')
+
+            if not config.dry_run:
+                upload(
+                    file,
+                    file_full_url,
+                    config.no_progress,
+                    override,
+                    headers,
+                    config.insecure,
+                    report,
+                )
+
+
 def main():
     '''
     Main function. Get arguments, login, upload files.
     '''
+    print("Welcome to filebrowser-upload")
     args = get_args()
 
     if args.password is None:
@@ -243,37 +285,21 @@ def main():
         'Authorization': f'Bearer {token}',  # version <= 2.0.0 seems use this header
     }
 
-    url = get_upload_url(args)
     report = {}
 
-    if args.subcommand == 'folder':
-        # Traverse the folder in top-down way and upload all files
-        for path, _, files in walk(args.src):
-            for file in files:
-                if args.only_folder_content:
-                    path_no_prefix = path.removeprefix(args.src)
-                else:
-                    path_no_prefix = path
+    if isdir(args.src):
+        print("Folder upload detected...\n")
+        url = get_upload_url(args)
+        traverse_fs_and_upload(args, url, override, headers, report)
+    elif isfile(args.src):
+        print("File upload detected...\n")
 
-                file_full_url = posixpath.join(
-                    url, path_no_prefix.lstrip('/'), file.lstrip('/')
-                )
-                file = join(path, file)
+        if args.dest == "":
+            args.dest = basename(args.src)
 
-                print(f'Uploading {file} to {file_full_url}')
+        url = get_upload_url(args)
 
-                if not args.dry_run:
-                    upload(
-                        file,
-                        file_full_url,
-                        args.no_progress,
-                        override,
-                        headers,
-                        args.insecure,
-                        report,
-                    )
-    elif args.subcommand == 'file':
-        print(f'Uploading to {url}')
+        print(f'Uploading {args.src} to {url}')
         if not args.dry_run:
             upload(
                 args.src,
@@ -285,7 +311,10 @@ def main():
                 report,
             )
 
-    print('\nUpload completed with the following report:')
+    if not args.dry_run:
+        print('\nUpload completed with the following report:')
 
-    for key, value in report.items():
-        print(f'\t{value} item were uploaded with code {key}')
+        for key, value in report.items():
+            print(f'\t{value} item were uploaded with code {key}')
+    else:
+        print("\nThis was a dry-run session. Nothing changed.")
