@@ -8,13 +8,14 @@ from os import walk
 from os.path import abspath, dirname, expanduser, join
 from getpass import getpass
 
-VENDOR_PATH = abspath(join(dirname(__file__), 'vendor'))
-sys.path.insert(0, VENDOR_PATH)
-
 import requests
 from tqdm import tqdm
 from urllib3.exceptions import InsecureRequestWarning
+
 from .__version__ import __version__
+
+VENDOR_PATH = abspath(join(dirname(__file__), 'vendor'))
+sys.path.insert(0, VENDOR_PATH)
 
 warnings.simplefilter('ignore', InsecureRequestWarning)
 
