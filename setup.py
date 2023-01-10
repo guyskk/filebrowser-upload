@@ -48,9 +48,7 @@ class VendorCommand(Command):
     def run(self):
         shutil.rmtree(VENDOR_PATH)
         os.system(
-            'pip install --no-binary :all --no-compile --no-deps -r requirements.txt -t {}'.format(
-                VENDOR_PATH
-            )
+            f'pip install --no-binary :all --no-compile --no-deps -r requirements.txt -t {VENDOR_PATH}'
         )
         _clean(
             [
@@ -100,7 +98,7 @@ setup(
     },
     name='filebrowser-upload',
     version=__version__,
-    description='Watch PATH and rsync to DEST',
+    description='Upload files to a filebrowser instance.',
     author='guyskk',
     author_email='guyskk@qq.com',
     url='https://github.com/guyskk/filebrowser-upload',
