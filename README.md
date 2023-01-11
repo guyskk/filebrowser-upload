@@ -15,60 +15,34 @@ In ```dist``` folder you will find the executable.
 ## Usage
 
 ```console
-usage: filebrowser-upload [-h] [--version VERSION] --api API --username USERNAME 
-                          [--password PASSWORD] [--insecure] [--no-progress] 
-                          [--override] [--dry-run]
-                          {file,folder} ...
+usage: filebrowser-upload [-h] --api API --username USERNAME [--dest DEST] [--password PASSWORD] 
+                          [--insecure] [--no-progress] [--override]
+                          [--dry-run] [--only-folder-content] [--version VERSION]
+                          src
 
 Filebrowser upload.
 
 positional arguments:
-  {file,folder}        Commands for single file upload or entire folder
-    file               Single file upload
-    folder             Entire folder and subfolders upload
+  src                   Source file or folder
 
 optional arguments:
-  -h, --help           show this help message and exit
-  --version VERSION    Show version
-  --api API            Filebrowser upload API URL
-  --username USERNAME  Username
-  --password PASSWORD  Inline password
-  --insecure           Allow insecure server connections when using SSL
-  --no-progress        Disable progress bar
-  --override           Override files or not
-  --dry-run            Dry run mode (no upload)
-```
-
-### Single file help
-
-```console
-usage: filebrowser-upload file [-h] src dest
-
-positional arguments:
-  src         Source file
-  dest        Destination file
-
-optional arguments:
-  -h, --help  show this help message and exit
-```
-
-### Folder help
-
-```console
-usage: filebrowser-upload folder [-h] [--only-folder-content] src dest
-
-positional arguments:
-  src                Source folder
-  dest               Destination folder
-
-optional arguments:
-  -h, --help         show this help message and exit
-  --only-folder-content  Remove input folder from full path when uploading. Only content of input folder will be uploaded.
+  -h, --help            show this help message and exit
+  --api API             Filebrowser upload API URL
+  --username USERNAME   Username
+  --dest DEST           Destination file or folder (Default is filebrowser home)
+  --password PASSWORD   Inline password
+  --insecure            Allow insecure server connections when using SSL
+  --no-progress         Disable progress bar
+  --override            Override files or not
+  --dry-run             Dry run mode (no upload)
+  --only-folder-content
+                        Remove input folder from full path when uploading. Only content of input folder will be uploaded.
+  --version VERSION     Show version
 ```
 
 > :warning: **Specify password via params only in safe environment**
 
-## Example
+## Examples
 
 ### Single file upload
 
@@ -76,8 +50,20 @@ optional arguments:
 filebrowser-upload \
     --api http://127.0.0.1:8000/api/ \
     --username admin \
-    file README.md README.md
+    foo.bar
 ```
+
+Uploads to: ```http://127.0.0.1:8000/api/resources/foo.bar```
+
+```console
+filebrowser-upload \
+    --api http://127.0.0.1:8000/api/ \
+    --username admin \
+    --dest a_folder/new_foo.bar
+    foo.bar
+```
+
+Uploads to: ```http://127.0.0.1:8000/api/resources/a_folder/new_foo.bar```
 
 ### Folder upload
 
@@ -85,25 +71,33 @@ filebrowser-upload \
 filebrowser-upload \
     --api http://127.0.0.1:8000/api/ \
     --username admin \
-    folder foo bar
+    foo
 ```
 
-Will upload to:
+Uploads to: ```http://127.0.0.1:8000/api/resources/foo/<folder_content>```
 
-```http://127.0.0.1:8000/api/resources/bar/foo/some_file.txt```
+```console
+filebrowser-upload \
+    --api http://127.0.0.1:8000/api/ \
+    --username admin \
+    --dest bar
+    foo
+```
+
+Uploads to: ```http://127.0.0.1:8000/api/resources/bar/foo/<folder_content>```
 
 With ```--only-folder-content```
 
 ```console
-filebrowser-upload 
+filebrowser-upload \
     --api http://127.0.0.1:8000/api/ \
-    --username admin \ 
-    folder --only-folder-content foo/bar test
+    --username admin \
+    --dest bar
+    --only-folder-content
+    foo
 ```
 
-Will upload to:
-
-```http://127.0.0.1:8000/api/resources/test/some_file.txt```
+Uploads to: ```http://127.0.0.1:8000/api/resources/bar/<folder_content>```
 
 ### Dry run
 
