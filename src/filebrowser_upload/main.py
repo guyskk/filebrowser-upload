@@ -92,7 +92,7 @@ def get_args():
 
     args = parser.parse_args()
 
-    args.src = expanduser(args.src)
+    args.src = expanduser(args.src.rstrip('/'))
     args.dest = args.dest.strip().lstrip('/')
     args.api = args.api.strip().rstrip('/')
 
@@ -228,24 +228,24 @@ def traverse_fs_and_upload(config, url, override, headers, report):
         report (dict): Update upload report
     """
 
+    # e.g.: config.src is /home/user/test/upload_folder
+    # This means that I want to upload the directory named 'upload_folder'
+    # Rest of the path must not be part of the destination url
+    # fixed_prefix for this example will be /home/user/test
+    # Same logic applies for relative path (e.g. test/upload_folder)
+    fixed_prefix = dirname(config.src)
+
     for path, _, files in walk(config.src):
         for file in files:
             if config.only_folder_content:
                 path_no_prefix = path.removeprefix(config.src)
             else:
-                path_no_prefix = path
+                path_no_prefix = path.replace(fixed_prefix, "")
 
             file_full_url = posixpath.join(
                 url, path_no_prefix.lstrip('/'), file.lstrip('/')
             )
-            print(
-                file_full_url,
-                url,
-                path_no_prefix,
-                path_no_prefix.lstrip('/'),
-                file,
-                file.lstrip('/'),
-            )
+
             file = join(path, file)
 
             print(f'Uploading {file} to {file_full_url}')
@@ -294,6 +294,7 @@ def main():
     elif isfile(args.src):
         print("File upload detected...\n")
 
+        # if dest is not defined, use input file name as dest
         if args.dest == "":
             args.dest = basename(args.src)
 
