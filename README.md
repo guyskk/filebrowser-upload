@@ -15,8 +15,8 @@ In ```dist``` folder you will find the executable.
 ## Usage
 
 ```console
-usage: filebrowser-upload [-h] [--api API] [--username USERNAME] [--password PASSWORD] [--dest DEST]
-                          [--insecure] [--no-progress] [--override]
+usage: filebrowser-upload [-h] [--api API] [--username USERNAME] [--password PASSWORD] 
+                          [--dest DEST] [--insecure] [--no-progress] [--override]
                           [--dry-run] [--only-folder-content] [--version VERSION]
                           src
 
@@ -35,7 +35,8 @@ optional arguments:
   --no-progress          Disable progress bar
   --override             Override files or not
   --dry-run              Dry run mode (no upload)
-  --only-folder-content  Remove input folder from full path when uploading. Only content of input folder will be uploaded.
+  --only-folder-content  Remove input folder from full path when uploading. 
+                         Only content of input folder will be uploaded.
   --version VERSION      Show version
 ```
 
