@@ -2,10 +2,11 @@
 
 import posixpath
 import argparse
+import configparser
 import sys
 import warnings
-from os import walk
-from os.path import abspath, dirname, expanduser, join, isdir, isfile, basename
+from os import walk, getenv
+from os.path import abspath, dirname, expanduser, join, isdir, isfile, basename, exists
 from getpass import getpass
 
 import requests
@@ -25,13 +26,34 @@ except ImportError:
     super_len = len
 
 
+CONFIG_FILE_NAME = 'filebrowser_upload.ini'
+
+
+def read_config(path: str) -> dict:
+    '''
+    Read the config file and return it as dictionary
+
+    Args:
+        path (str): path to config file
+
+    Returns:
+        dict: loaded configuration
+    '''
+
+    config = configparser.ConfigParser()
+    config.read(path)
+
+    return dict(config["filebrowser"])
+
+
 def get_args():
     '''
     Get arguments.
 
     Returns:
-        args: Parsed arguments.
+        args, dict: Parsed arguments, loaded configuration.
     '''
+
     if '--version' in sys.argv:
         print(__version__)
         sys.exit(0)
@@ -40,9 +62,14 @@ def get_args():
 
     parser.add_argument('src', type=str, help='Source file or folder')
     parser.add_argument(
-        '--api', dest='api', required=True, help='Filebrowser upload API URL'
+        '--api',
+        dest='api',
+        default=argparse.SUPPRESS,
+        help='Filebrowser upload API URL',
     )
-    parser.add_argument('--username', dest='username', required=True, help='Username')
+    parser.add_argument(
+        '--username', dest='username', default=argparse.SUPPRESS, help='Username'
+    )
     parser.add_argument(
         '--dest',
         dest='dest',
@@ -50,7 +77,9 @@ def get_args():
         default='',
         help='Destination file or folder (Default is filebrowser home)',
     )
-    parser.add_argument('--password', dest='password', help='Inline password')
+    parser.add_argument(
+        '--password', dest='password', default=argparse.SUPPRESS, help='Inline password'
+    )
     parser.add_argument(
         '--insecure',
         dest='insecure',
@@ -92,45 +121,122 @@ def get_args():
 
     args = parser.parse_args()
 
+    # Default param
+    config = {
+        'api': None,
+        'username': None,
+        'password': None,
+    }
+
+    config_paths = possible_config_paths()
+
+    for path in config_paths:
+        if exists(path):
+            fileconfig = read_config(path)
+            print(f'Configuration loaded from: {path}')
+            config.update(fileconfig)
+            break
+
+    args_var = vars(args)
+
+    # CLI takes precedence
+    for key in config:
+        if key in args_var:
+            config[key] = args_var[key]
+
+    # Validate mandatory params
+
+    if config['api'] is None:
+        raise TypeError("A Valid api param must be provided. Use -h for help.")
+
+    if config['username'] is None:
+        raise TypeError("A Valid username param must be provided. Use -h for help.")
+
+    config['api'] = config['api'].strip().rstrip('/')
+    check_url(config['api'])
+
+    # Sanitize params
+
     args.src = expanduser(args.src.rstrip('/'))
     args.dest = args.dest.strip().lstrip('/')
-    args.api = args.api.strip().rstrip('/')
 
-    return args
+    return args, config
 
 
-def get_login_url(config):
+def possible_config_paths():
+    '''
+    Paths were a config file should be found based on platform used
+
+    Returns:
+        list: A list of valid paths
+    '''
+
+    config_paths = [
+        join(getenv('HOME') or '~', '.config', 'filebrowser_upload', CONFIG_FILE_NAME),
+    ]
+
+    if sys.platform == 'win32':
+        config_paths.append(
+            join(getenv('APPDATA'), 'filebrowser_upload', CONFIG_FILE_NAME)
+        )
+    elif sys.platform == 'darwin':
+        config_paths.append(
+            join(
+                getenv('HOME') or '~',
+                'Library',
+                'Application Support',
+                'filebrowser_upload',
+                CONFIG_FILE_NAME,
+            )
+        )
+
+    return config_paths
+
+
+def check_url(url: str):
+    '''
+    Check if a url is valid. If it is not an exception will raise
+
+    Args:
+        url (str): url to check
+    '''
+
+    prepared_request = requests.models.PreparedRequest()
+    prepared_request.prepare_url(url, None)
+
+
+def get_login_url(config: dict):
     '''
     Compose the login url.
 
     Args:
-        config (args): Parsed arguments.
+        config (dict): loaded configuration
 
     Returns:
         str: Login url.
     '''
-    return posixpath.join(config.api, 'login')
+    return posixpath.join(config['api'], 'login')
 
 
-def get_upload_url(config):
+def get_upload_url(args):
     '''
     Compose the upload url.
 
     Args:
-        config (args): Parsed arguments.
+        args (args): Parsed arguments.
 
     Returns:
         str: Upload url.
     '''
-    return posixpath.join(config.api, 'resources', config.dest)
+    return posixpath.join(args.api, 'resources', args.dest)
 
 
-def get_token(config):
+def get_token(args, config: dict):
     '''
     Get authentication token.
 
     Args:
-        config (args): Parsed arguments.
+        args (args): Parsed arguments.
 
     Returns:
         str: Authentication token.
@@ -138,11 +244,11 @@ def get_token(config):
     response = requests.post(
         get_login_url(config),
         json={
-            'password': config.password,
+            'password': config['password'],
             'recaptcha': '',
-            'username': config.username,
+            'username': config['username'],
         },
-        verify=not config.insecure,
+        verify=not args.insecure,
     )
     response.raise_for_status()
     return response.text
@@ -216,29 +322,29 @@ def upload(file, url, no_progress, override, headers, insecure, report):
         report[report_key] = 1
 
 
-def traverse_fs_and_upload(config, url, override, headers, report):
+def traverse_fs_and_upload(args, url, override, headers, report):
     '''
     Traverse the folder in top-down way starting from a given path and upload all files
 
     Args:
-        config: Parsed arguments
+        args: Parsed arguments
         url (str): Upload url
         override (bool): Override files or not
         headers (dict): Authentication headers
         report (dict): Update upload report
     '''
 
-    # e.g.: config.src is /home/user/test/upload_folder
+    # e.g.: args.src is /home/user/test/upload_folder
     # This means that I want to upload the directory named 'upload_folder'
     # Rest of the path must not be part of the destination url
     # fixed_prefix for this example will be /home/user/test
     # Same logic applies for relative path (e.g. test/upload_folder)
-    fixed_prefix = dirname(config.src)
+    fixed_prefix = dirname(args.src)
 
-    for path, _, files in walk(config.src):
+    for path, _, files in walk(args.src):
         for file in files:
-            if config.only_folder_content:
-                path_no_prefix = path.removeprefix(config.src)
+            if args.only_folder_content:
+                path_no_prefix = path.removeprefix(args.src)
             else:
                 path_no_prefix = path.replace(fixed_prefix, '')
 
@@ -250,14 +356,14 @@ def traverse_fs_and_upload(config, url, override, headers, report):
 
             print(f'Uploading {file} to {file_full_url}')
 
-            if not config.dry_run:
+            if not args.dry_run:
                 upload(
                     file,
                     file_full_url,
-                    config.no_progress,
+                    args.no_progress,
                     override,
                     headers,
-                    config.insecure,
+                    args.insecure,
                     report,
                 )
 
@@ -267,16 +373,18 @@ def main():
     Main function. Get arguments, login, upload files.
     '''
     print('Welcome to filebrowser-upload')
-    args = get_args()
+    args, config = get_args()
 
-    if args.password is None:
-        args.password = getpass('Password: ')
+    if config['password'] is None:
+        config['password'] = getpass('Password: ')
 
     try:
-        token = get_token(args)
+        token = get_token(args, config)
     except requests.exceptions.HTTPError as ex:
-        print(f'Login failed: {ex.response.status_code} {ex.response.reason}')
-        return
+        status_code = ex.response.status_code
+        reason = ex.response.reason
+
+        sys.exit(f'Login failed for user {config["username"]}: {status_code} {reason}')
 
     override = 'true' if args.override else 'false'
 
