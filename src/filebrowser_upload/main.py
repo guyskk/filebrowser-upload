@@ -68,7 +68,13 @@ def get_args():
         help='Filebrowser upload API URL',
     )
     parser.add_argument(
-        '--username', dest='username', default=argparse.SUPPRESS, help='Username'
+        '--username', dest='username', default=argparse.SUPPRESS, help='Login username'
+    )
+    parser.add_argument(
+        '--password',
+        dest='password',
+        default=argparse.SUPPRESS,
+        help='Login password (use inline in safe environment)',
     )
     parser.add_argument(
         '--dest',
@@ -76,9 +82,6 @@ def get_args():
         type=str,
         default='',
         help='Destination file or folder (Default is filebrowser home)',
-    )
-    parser.add_argument(
-        '--password', dest='password', default=argparse.SUPPRESS, help='Inline password'
     )
     parser.add_argument(
         '--insecure',
