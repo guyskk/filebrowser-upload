@@ -47,7 +47,7 @@ def get_args():
         '--dest',
         dest='dest',
         type=str,
-        default="",
+        default='',
         help='Destination file or folder (Default is filebrowser home)',
     )
     parser.add_argument('--password', dest='password', help='Inline password')
@@ -217,7 +217,7 @@ def upload(file, url, no_progress, override, headers, insecure, report):
 
 
 def traverse_fs_and_upload(config, url, override, headers, report):
-    """
+    '''
     Traverse the folder in top-down way starting from a given path and upload all files
 
     Args:
@@ -226,7 +226,7 @@ def traverse_fs_and_upload(config, url, override, headers, report):
         override (bool): Override files or not
         headers (dict): Authentication headers
         report (dict): Update upload report
-    """
+    '''
 
     # e.g.: config.src is /home/user/test/upload_folder
     # This means that I want to upload the directory named 'upload_folder'
@@ -240,7 +240,7 @@ def traverse_fs_and_upload(config, url, override, headers, report):
             if config.only_folder_content:
                 path_no_prefix = path.removeprefix(config.src)
             else:
-                path_no_prefix = path.replace(fixed_prefix, "")
+                path_no_prefix = path.replace(fixed_prefix, '')
 
             file_full_url = posixpath.join(
                 url, path_no_prefix.lstrip('/'), file.lstrip('/')
@@ -266,7 +266,7 @@ def main():
     '''
     Main function. Get arguments, login, upload files.
     '''
-    print("Welcome to filebrowser-upload")
+    print('Welcome to filebrowser-upload')
     args = get_args()
 
     if args.password is None:
@@ -288,14 +288,14 @@ def main():
     report = {}
 
     if isdir(args.src):
-        print("Folder upload detected...\n")
+        print('Folder upload detected...\n')
         url = get_upload_url(args)
         traverse_fs_and_upload(args, url, override, headers, report)
     elif isfile(args.src):
-        print("File upload detected...\n")
+        print('File upload detected...\n')
 
         # if dest is not defined, use input file name as dest
-        if args.dest == "":
+        if args.dest == '':
             args.dest = basename(args.src)
 
         url = get_upload_url(args)
@@ -318,4 +318,4 @@ def main():
         for key, value in report.items():
             print(f'\t{value} item were uploaded with code {key}')
     else:
-        print("\nThis was a dry-run session. Nothing changed.")
+        print('\nThis was a dry-run session. Nothing changed.')
