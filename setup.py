@@ -25,7 +25,7 @@ def _clean(patterns):
     for root, dirnames, filenames in os.walk(base):
         for name in dirnames + filenames:
             fullpath = os.path.join(root, name)
-            fullname = fullpath[len(base) + 1:]
+            fullname = fullpath[len(base) + 1 :]
             for pattern in patterns:
                 if fnmatch.fnmatch(fullname, pattern):
                     print(fullname)
@@ -47,16 +47,19 @@ class VendorCommand(Command):
 
     def run(self):
         shutil.rmtree(VENDOR_PATH)
-        os.system('pip install --no-binary :all --no-compile --no-deps -r requirements.txt -t {}'
-                  .format(VENDOR_PATH))
-        _clean([
-            '**/vendor/bin',
-            '**/vendor/*.dist-info',
-            '**/vendor/*.so',
-            '**/*.egg-info',
-            '**/__pycache__',
-            '**/*.py[co]',
-        ])
+        os.system(
+            f'pip install --no-binary :all --no-compile --no-deps -r requirements.txt -t {VENDOR_PATH}'
+        )
+        _clean(
+            [
+                '**/vendor/bin',
+                '**/vendor/*.dist-info',
+                '**/vendor/*.so',
+                '**/*.egg-info',
+                '**/__pycache__',
+                '**/*.py[co]',
+            ]
+        )
 
 
 class PackageCommand(Command):
@@ -70,11 +73,13 @@ class PackageCommand(Command):
         pass
 
     def run(self):
-        _clean([
-            '**/*.egg-info',
-            '**/__pycache__',
-            '**/*.py[co]',
-        ])
+        _clean(
+            [
+                '**/*.egg-info',
+                '**/__pycache__',
+                '**/*.py[co]',
+            ]
+        )
         if not os.path.exists('dist'):
             os.makedirs('dist')
         os.system("cd src && zip -r - * > ../dist/filebrowser-upload")
@@ -93,7 +98,7 @@ setup(
     },
     name='filebrowser-upload',
     version=__version__,
-    description='Watch PATH and rsync to DEST',
+    description='Upload files to a filebrowser instance.',
     author='guyskk',
     author_email='guyskk@qq.com',
     url='https://github.com/guyskk/filebrowser-upload',

@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+certifi = "==2022.6.15"
+chardet = "==5.0.0"
+idna = "==3.3"
+requests = "==2.28.1"
+tqdm = "==4.64.0"
+urllib3 = "==1.26.11"
+
+[dev-packages]
+black = "==22.6.0"
+pylint= "==2.14.5"
+
+[requires]
+python_version = "3.9"
